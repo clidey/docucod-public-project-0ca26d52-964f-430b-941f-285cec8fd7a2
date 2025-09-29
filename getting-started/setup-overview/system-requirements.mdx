@@ -1,0 +1,208 @@
+---
+title: "System Requirements & Prerequisites"
+description: "Lists the supported operating systems, Wails and language versions, and required tools—Go, Node.js, and, optionally, Deno. Details any authentication or signing account setup needed for MacOS and Windows builds, ensuring your environment is ready before you begin."
+---
+
+# System Requirements & Prerequisites
+
+This guide ensures your environment complies with all necessary requirements before you start building, packaging, and signing your Wails.io desktop applications using the `dAppServer/wails-build-action`.
+
+Being prepared with the correct operating systems, language runtimes, and certificates is critical for smooth automated builds and signing processes across MacOS, Windows, and Linux.
+
+---
+
+## 1. Supported Operating Systems
+
+The action supports running within GitHub-hosted runners for the following OS environments:
+
+- **macOS:** `macos-latest` (recommended for Mac builds and signing)
+- **Windows:** `windows-latest` (needed for Windows builds and signing)
+- **Linux:** `ubuntu-latest` (supported for Linux builds)
+
+Note: Linux distributions supported include Ubuntu 20.04, 22.04, and 24.04. Unsupported distributions will cause the build workflow to fail explicitly.
+
+---
+
+## 2. Required Language Versions
+
+Your build environment requires specific versions of Go, Node.js, and optionally Deno, installed automatically by the action based on your workflow inputs.
+
+- **Golang**
+  - Default: `1.23`
+  - Action uses `actions/setup-go@v5` with caching based on your `go.sum` dependency file.
+
+- **Node.js**
+  - Default: `18.x`
+  - Automatically installed for frontend asset handling.
+
+- **Deno** (Optional)
+  - Default: `v1.20.x`
+  - Only installed and invoked if you specify a Deno build command.
+
+> <Check> Keep your `go-version`, `node-version`, and `deno-version` inputs updated as needed to match your project’s requirements.
+
+---
+
+## 3. Additional Dependencies & Tools
+
+The action automatically installs any platform-specific dependencies that your Wails build requires.
+
+### Linux
+
+- Installs GTK3 and WebKit bindings required for GUI support:
+  - For Ubuntu 20.04 and 22.04: `libgtk-3-0 libwebkit2gtk-4.0-dev`
+  - For Ubuntu 24.04: `libgtk-3-0 libwebkit2gtk-4.1-dev`
+- Cross-compilation toolchain: `gcc-aarch64-linux-gnu`
+- If your distro is unsupported, the workflow will abort with a clear error.
+
+### macOS
+
+- Installs `gon` for notarizing and signing Mac applications.
+- Expects command-line tools like `productbuild` for installer packaging.
+
+### Windows
+
+- Relies on Windows SDK tools (`signtool.exe`) available on GitHub-hosted runners for signing.
+
+---
+
+## 4. Authentication & Signing Account Setup
+
+To enable code signing and notarization during your build, prepare the following credentials depending on your target platform.
+
+### MacOS Code Signing Requirements
+
+To sign and notarize your MacOS application and installer successfully, you must obtain the appropriate certificates and passwords as environment secrets.
+
+- **App Signing:**
+  - `sign-macos-app-id`: Your Developer ID Application certificate identifier.
+  - `sign-macos-app-cert`: Base64 encoded `.p12` certificate file.
+  - `sign-macos-app-cert-password`: Password for the `.p12` certificate.
+  - `sign-macos-apple-password`: Your Apple ID app-specific password for notarization.
+
+- **Installer Signing:**
+  - `sign-macos-installer-id`: Developer ID Installer certificate identifier.
+  - `sign-macos-installer-cert`: Base64 encoded `.p12` installer certificate.
+  - `sign-macos-installer-cert-password`: Password for the installer certificate.
+
+These credentials enable the workflow to import certificates into the macOS keychain, sign your `.app` bundle, create and sign an installer package, and perform notarization.
+
+<Note>
+Ensure proper permissions and limits on your Apple ID credentials to avoid build failures during notarization.
+</Note>
+
+### Windows Code Signing Requirements
+
+- `sign-windows-cert`: Base64 encoded `.pfx` file or the certificate content required for signing your Windows binaries.
+- `sign-windows-cert-password`: Password protecting the Windows signing certificate.
+
+The workflow decodes and uses these certs with the Windows `signtool.exe` to sign executables and installers.
+
+<Warning>
+Incorrect or missing signing credentials will skip signing or cause errors during Windows build steps.
+</Warning>
+
+---
+
+## 5. Summary of Workflow Inputs Related to System and Signing
+
+| Input Parameter                    | Default       | Description                                             |
+|----------------------------------|---------------|---------------------------------------------------------|
+| `go-version`                     | 1.23          | Golang version to install and use                        |
+| `node-version`                   | 18.x          | Node.js version for frontend build                       |
+| `deno-version`                  | v1.20.x       | Optional Deno version if `deno-build` specified          |
+| `build-platform`                | darwin/universal | Target platform for building                             |
+| `sign`                         | false         | Enable code signing during the build                     |
+| `sign-macos-app-id`            | ''            | MacOS App certificate ID (for signing)                   |
+| `sign-macos-app-cert`          | ''            | Base64-encoded MacOS App certificate (.p12)              |
+| `sign-macos-app-cert-password` | ''            | Password for MacOS App certificate                        |
+| `sign-macos-apple-password`    | ''            | Apple ID password or app-specific password for notarizing |
+| `sign-macos-installer-id`      | ''            | MacOS Installer certificate ID                           |
+| `sign-macos-installer-cert`    | ''            | Base64 encoded .p12 installer certificate                |
+| `sign-macos-installer-cert-password` | ''     | Password for installer certificate                        |
+| `sign-windows-cert`            | ''            | Windows signing certificate contents (Base64 or PEM)    |
+| `sign-windows-cert-password`   | ''            | Password for Windows signing certificate                  |
+
+---
+
+## 6. Preparing Your Environment Before Starting
+
+Follow these steps to confirm readiness:
+
+<Steps>
+<Step title="Verify Operating System Compatibility">
+Ensure your GitHub runner or local machine runs a supported OS version (Ubuntu 20.04/22.04/24.04 for Linux, macOS-latest, or windows-latest).
+</Step>
+<Step title="Set Appropriate Language Versions">
+Configure your workflow inputs to specify compatible Go, Node.js, and optional Deno versions matching your project.
+</Step>
+<Step title="Gather Code Signing Credentials">
+Obtain and encode the necessary certificates for MacOS and/or Windows code signing. Set them securely in your repository secrets.
+</Step>
+<Step title="Install Additional Dependencies (Local Builds)">
+For local builds (not GitHub-hosted runners), manually install dependencies such as `gon`, GTK, WebKit dev libs, and Windows SDK tools where applicable.
+</Step>
+<Step title="Confirm Network Connectivity">
+Make sure your build environment can access external package sources such as Go modules, npm registry, and Apple notarization servers.
+</Step>
+</Steps>
+
+---
+
+## 7. Troubleshooting Common Prerequisite Issues
+
+<AccordionGroup title="Common Issues and Solutions">
+<Accordion title="Unsupported Linux Distribution">
+If your runner's Linux distro is unsupported, the action exits with an error. Switch to an Ubuntu 20.04, 22.04, or 24.04 runner or update your runner image.
+</Accordion>
+<Accordion title="Code Signing Failure on MacOS">
+Double-check that all signing certificates and passwords are correct and properly supplied as secrets. Incorrect Apple ID app-password or expired certificates will cause failures.
+</Accordion>
+<Accordion title="Missing Dependencies on Local Machines">
+Ensure all necessary tools (Go, Node, deno, gon, signtool, GTK, WebKit) are installed and in your system PATH.
+</Accordion>
+<Accordion title="Network Access Problems">
+Failures fetching Go modules, npm packages, or notarizing Mac apps can occur if your environment lacks outbound internet access or required firewall exceptions.
+</Accordion>
+</AccordionGroup>
+
+---
+
+## 8. Next Steps
+
+Now that your system meets the requirements:
+
+- Proceed to [Preparing Your Repository](../setup-overview/preparing-your-repository) to structure your code and configure your workflow files.
+- Then, follow the step-by-step instructions to [Add the Action to GitHub Workflows](../install-configure/adding-action-github).
+- When ready, set up your [Code Signing Credentials](../install-configure/code-signing-setup) to enable full build and release signing.
+
+<Tip>
+Maintaining an up-to-date local development environment that matches your CI runner versions helps reduce surprise build issues.
+</Tip>
+
+---
+
+For detailed examples of configuring language versions, signing certificates, and supported platforms, refer to the [Configuration & Customization Options](../../feature-quicktour/configuration-and-customization) documentation.
+
+
+---
+
+# Quick Reference
+
+| Platform     | Supported Versions / Tools          | Signing Credentials Required                      |
+|--------------|-----------------------------------|-------------------------------------------------| 
+| macOS        | macos-latest, gon, productbuild   | MacOS Developer & Installer certs, Apple password |
+| Windows      | windows-latest, signtool.exe       | Windows Signing PFX and password                   |
+| Linux        | ubuntu-latest (20.04/22.04/24.04) | No signing by default                              |
+
+---
+
+If you encounter issues not covered here, see the [Troubleshooting Common Setup Issues](../first-run-validation/common-setup-issues) guide.
+
+---
+
+**Supported Language Versions:** Go 1.23+, Node 18.x+, Deno v1.20.x+ (optional)
+
+**Credentials:** Set all signing certs and passwords as GitHub secrets, never hardcoded.
+
+Verify your readiness and environment correctness before triggering builds to save time and avoid early failures.
