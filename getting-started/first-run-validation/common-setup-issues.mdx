@@ -1,0 +1,160 @@
+---
+title: "Troubleshooting Common Setup Issues"
+description: "Covers frequently encountered issues such as version mismatches, missing secrets, platform-specific errors, and misconfigured workflows. Provides actionable solutions and reference points for escalated debugging."
+---
+
+# Troubleshooting Common Setup Issues
+
+This guide addresses frequent issues encountered when using the **dAppServer/wails-build-action** GitHub Action. Whether facing version mismatches, missing secrets, platform-specific errors, or workflow misconfigurations, these actionable solutions will help you get your Wails.io desktop app builds running smoothly.
+
+---
+
+## 1. Version Compatibility Problems
+
+### Issue: Incompatible Go, Node, or Wails Versions
+
+- **Symptom:** Builds fail with errors referencing Go, Node.js, or Wails version incompatibilities.
+
+- **Solution:**
+  1. Explicitly set the action input versions in your workflow YAML:
+
+  ```yaml
+  with:
+    go-version: "1.23"
+    node-version: "18.x"
+    wails-version: "v2.9.0"  # Avoid v2.10.0 due to known issues
+  ```
+
+  2. Pin versions to stable releases known to work (e.g., `v2.9.0` for Wails, Go `1.23`, Node `18.x`).
+  3. Check the README and release notes for any known version-specific problems.
+
+### Pro Tip:
+> Always use the `latest` tag cautiously. For production workflows, lock versions to avoid unexpected breaking changes.
+
+---
+
+## 2. Missing or Incorrect Secrets for Code Signing
+
+### Issue: Code signing fails on macOS or Windows during signing steps.
+
+- **Symptom:** The action logs errors about missing certificates or authentication failures.
+
+- **Solution:**
+  1. Ensure all signing related secrets are correctly created in GitHub Secrets with exact key names expected by the action.
+  2. Validate that the secrets have the correct base64-encoded certificates, passwords, and identifiers:
+
+    - For macOS: `sign-macos-app-cert`, `sign-macos-app-cert-password`, `sign-macos-installer-cert`, `sign-macos-installer-cert-password`, `sign-macos-apple-password`, `sign-macos-app-id`, and `sign-macos-installer-id`.
+    - For Windows: `sign-windows-cert` and `sign-windows-cert-password`.
+
+  3. Confirm your workflow conditionally triggers signing only on tagged releases, e.g.,:
+
+  ```yaml
+  if: startsWith(github.ref, 'refs/tags/')
+  ```
+
+  4. Verify certificates are valid and properly imported before signing (refer to [Code Signing Setup Guide](getting-started/install-configure/code-signing-setup)).
+
+### Common Pitfall:
+> Forgetting to base64 encode certificates or mislabeling secrets leads to cryptic signing errors.
+
+---
+
+## 3. Platform-Specific Dependency or Build Failures
+
+### Linux Dependency Issues
+
+- **Symptom:** Build fails on Linux runners with missing libraries such as GTK or WebKit.
+
+- **Solution:**
+  - The action automatically installs dependencies for supported Ubuntu versions (20.04, 22.04, 24.04).
+  - If your runner uses a different Linux distro or version, add manual installation steps or switch to supported runners.
+
+### macOS Build or Permission Errors
+
+- **Symptom:** Executable permissions missing, or installers fail silently.
+
+- **Solution:**
+  - The action automatically runs `chmod +x` on built binaries.
+  - Ensure your workflow does not override or skip these steps.
+  - For silent errors during installer creation, check your signing certificates and environment variables.
+
+### Windows Signing or Path Issues
+
+- **Symptom:** Signing tools fail, or binaries not found due to path discrepancies.
+
+- **Solution:**
+  - Use Windows runners (e.g., `windows-latest`) with correct filesystem paths in your workflow.
+  - Verify the signing certificate is decoded properly before signing.
+  - Review the Windows SDK path hardcoded in the action and update if necessary.
+
+---
+
+## 4. Workflow YAML Misconfigurations
+
+### Issue: Workflow fails early or skips essential steps
+
+- **Symptom:** The build action doesn’t run as expected, or important steps are skipped.
+
+- **Solution:**
+  1. Check input parameters for syntax correctness and required fields:
+
+  ```yaml
+  with:
+    build-name: yourAppName   # Required
+    build-platform: linux/amd64   # Valid platform string
+  ```
+
+  2. Avoid conflicting inputs such as setting `build` to `false` when expecting a build.
+  3. Confirm conditional expressions in workflow steps are valid, e.g., ensure correct use of `if:` clauses.
+  4. Use matrix strategies carefully to avoid unsupported OS-platform combos.
+
+---
+
+## 5. Common Error Messages and How to Resolve Them
+
+| Error Message                               | Cause                                 | Recommended Fix                                    |
+|--------------------------------------------|-------------------------------------|---------------------------------------------------|
+| `Unsupported Linux distribution: <version>` | Using a non-supported Linux version | Switch to Ubuntu 20.04, 22.04, or 24.04 runner or customize dependencies manually. |
+| `Failed to find signing certificate`      | Missing or invalid signing secrets  | Verify and base64 encode certs, update secrets.  |
+| `Command not found: wails`                  | Wails not installed or cached        | Ensure `wails` installs before build, enable cache or use `wails-dev-build: false`. |
+| `Permission denied` during build steps    | Missing executable permissions       | Allow chmod step or ensure runner has correct permissions. |
+
+---
+
+## 6. Diagnostic Tips
+
+- Review full workflow logs in GitHub Actions for detailed error traces.
+- Validate environment variables and inputs from your workflow run logs.
+- Enable verbose logging in your build commands if possible for more insights.
+- When signing issues arise, test signing locally if feasible to isolate environment problems.
+
+---
+
+## 7. When to Escalate
+
+If you have exhausted these troubleshooting steps and still encounter issues:
+
+- Review [GitHub Issues](https://github.com/dAppServer/wails-build-action/issues) for similar problems or to file a bug report.
+- Provide logs, minimal reproducible workflows, and describe your runner environment.
+- Check compatibility notes and recent changes impacting your build versions.
+
+---
+
+## Additional Resources
+
+- [Adding the Action to GitHub Workflows](getting-started/install-configure/adding-action-github)
+- [Configuring Build Options](getting-started/install-configure/build-options-configuration)
+- [Setting Up Code Signing (MacOS & Windows)](getting-started/install-configure/code-signing-setup)
+- [Running Your First Build](getting-started/first-run-validation/running-your-first-build)
+
+---
+
+By proactively diagnosing using this troubleshooting guide, you will reduce build errors and enable a smooth, repeatable CI workflow using the dAppServer/wails-build-action.
+
+<Tip>
+Keep your workflow inputs and secrets organized and documented for easier maintenance and quicker resolution of issues.
+</Tip>
+
+<Warning>
+Avoid using unpinned versions in production workflows to maintain stability and prevent unexpected failures.
+</Warning>
