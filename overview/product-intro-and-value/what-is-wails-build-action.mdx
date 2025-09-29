@@ -1,0 +1,157 @@
+---
+title: "What is dAppServer/wails-build-action?"
+description: "An introduction to the GitHub Action for building Wails.io applications—a tool that automates building, packaging, and releasing cross-platform desktop apps using Go and Node.js, streamlining developer CI/CD pipelines."
+---
+
+# What is dAppServer/wails-build-action?
+
+## Streamline Your Wails.io App Builds with GitHub Actions
+
+The `dAppServer/wails-build-action` is a dedicated GitHub Action designed specifically for building Wails.io applications. It automates the complex process of compiling, packaging, and releasing your cross-platform desktop apps—combining the power of Go and Node.js—directly within your CI/CD pipelines.
+
+Whether you want to build for Linux, Windows, or macOS, this action manages installation of dependencies, executes builds, and can even handle digital signing and release publishing.
+
+### Why Use This GitHub Action?
+
+- **Effortless Automation:** Automate building your Wails app on every push or pull request without manual setup.
+- **Cross-Platform Support:** Build binaries for multiple OS and architectures seamlessly.
+- **Integrated Packaging & Releasing:** Upload artifacts and generate GitHub releases automatically on tagged commits.
+- **Optional Signing:** Secure your macOS and Windows binaries by integrating code signing directly into the workflow.
+- **Configurable & Extendable:** Fully customizable inputs let you tailor builds, including obfuscation, build tags, and packaging options.
+
+### Who Benefits Most?
+
+This action is essential for Wails developers who want to save time and avoid the intricacies of build environments. It suits individual developers, teams, and organizations looking to maintain consistent, reliable builds as part of their automated workflows.
+
+---
+
+## Understanding dAppServer/wails-build-action
+
+At its core, this GitHub Action simplifies the entire lifecycle of building Wails apps inside GitHub workflows:
+
+- **Dependency Management:** It installs required Go and Node.js versions, ensuring your environment matches your project's requirements.
+- **Build Execution:** Runs the `wails build` command with options for platform targeting, obfuscation, and Windows installer creation.
+- **Signing & Packaging:** For macOS and Windows, it can import certificates and sign binaries/installer packages before release.
+- **Artifact Handling:** Uploads the build output as workflow artifacts, and if triggered on a Git tag, publishes them as GitHub releases automatically.
+
+All these steps integrate transparently to deliver a fully packaged desktop app without manual intervention.
+
+### Key Differentiators
+
+- **Wails-Centric:** Tailored explicitly for Wails.io projects, respecting their build conventions and needs.
+- **Multi-Platform Flexibility:** Supports building for macOS (including universal binaries), Windows, and Linux.
+- **Security-Ready:** Code signing and notarization workflows for Apple platforms plus Windows signing support out of the box.
+- **Advanced Build Options:** Supports build obfuscation, custom Go build tags, and WebView2 installation modes.
+
+---
+
+## Core Features & Capabilities
+
+### 1. Automated Setup of Language Runtimes
+The action installs the specified versions of Go and Node.js needed to build your Wails application, ensuring environment consistency and eliminating manual setup errors.
+
+### 2. Flexible Build Configuration
+Customize builds with inputs such as:
+- `build-name`: Define your output binary's name.
+- `build-platform`: Target the desired OS/architecture.
+- `build-obfuscate`: Enable obfuscation to protect your binary.
+- `build-tags`: Apply Go build tags for conditional compilation.
+- `nsis`: Configure Windows installer creation.
+
+Example snippet to build for Linux with obfuscation:
+
+```yaml
+- uses: dAppServer/wails-build-action@v3
+  with:
+    build-name: myWailsApp
+    build-platform: linux/amd64
+    build-obfuscate: true
+```
+
+### 3. Integrated macOS and Windows Code Signing
+Support for importing certificates and signing binaries—and installers on macOS and Windows—ensures your applications meet platform security requirements and can be trusted by users.
+
+### 4. Artifact Upload & Release Publishing
+Upon building, artifacts are uploaded to GitHub workflows and, when building on tagged commits, are also released directly on GitHub releases, streamlining deployment.
+
+### 5. Support for Deno Execution
+Optionally run Deno commands as part of the workflow to support projects using Deno alongside Wails, allowing advanced build pipelines.
+
+### 6. Intelligent Linux Dependency Handling
+Detects your Linux runner's distribution version and installs appropriate GTK and WebKit dependencies, preventing common build failures.
+
+---
+
+## Why Should You Care?
+
+### Save Time and Avoid Build Drift
+Manually configuring cross-platform builds with Go, Node.js, and Wails can be error-prone and time-consuming. This action locks in working configurations, reducing build failures and environmental differences.
+
+### Deliver Ready-to-Release Binaries Effortlessly
+Use automated signing and packaging so your users receive properly signed, installer-ready apps without extra manual steps.
+
+### Increase CI/CD Pipeline Reliability
+Automate your build and release processes as part of your existing GitHub workflows to enforce consistency and speed up release frequency.
+
+### Adapt to Multiple Use Cases
+- Continuous Integration: Build and validate your app on every commit.
+- Release Automation: Publish tagged builds automatically.
+- Multi-Platform Testing: Ensure your app runs on Windows, macOS, and Linux.
+
+---
+
+## Getting Started Preview
+
+### Quick Start Example
+Here is a minimal example to add the action to your GitHub workflow:
+
+```yaml
+name: Build Wails App
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: dAppServer/wails-build-action@v3
+        with:
+          build-name: myWailsApp
+          build-platform: linux/amd64
+```
+
+### Prerequisites
+- Your repository contains a valid Wails v2 project.
+- You have configured `wails.json` and your frontend build scripts.
+- For signing, you must provide relevant certificates and secrets.
+
+### Next Steps
+- Consult the [System Requirements & Prerequisites](../getting-started/setup-overview/system-requirements) page.
+- Learn how to [Configure Build Options](../getting-started/install-configure/build-options-configuration).
+- Explore [Setting Up Code Signing](../getting-started/install-configure/code-signing-setup) for macOS and Windows.
+
+---
+
+## Additional Tips & Best Practices
+
+- **Use Semantic Versioning for `wails-version`:** Pin the Wails version to avoid surprises with breaking changes.
+- **Cache Dependencies:** Enable build cache for faster builds.
+- **Signing on Tagged Builds Only:** Keep signing steps conditional to tags to optimize CI usage.
+- **Customize Your Build Tags:** Use Go build tags to enable platform-specific code.
+
+---
+
+For comprehensive usage and examples, visit the [GitHub repository for dAppServer/wails-build-action](https://github.com/dAppServer/wails-build-action).
+
+---
+
+## Related Documentation
+- [System Architecture Overview](../overview/architecture-and-concepts/system-architecture-overview)
+- [Core Concepts & Terminology](../overview/architecture-and-concepts/core-terminology)
+- [Adding the Action to GitHub Workflows](../getting-started/install-configure/adding-action-github)
+- [Setting Up Code Signing](../getting-started/install-configure/code-signing-setup)
+
+---
+
+Empower your Wails.io development with a robust, automated build system that seamlessly fits into your GitHub workflow — accelerate and secure your app releases today.
