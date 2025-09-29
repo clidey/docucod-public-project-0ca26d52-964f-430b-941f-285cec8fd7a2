@@ -1,0 +1,199 @@
+---
+title: "Configuration & Customization Options"
+description: "Overviews adjustable build options—such as obfuscation, signing credentials, and package toggles—mapping key inputs to their impact in automation scenarios."
+---
+
+# Configuration & Customization Options
+
+Unlock the full potential of your Wails.io app automation by mastering the flexibility offered through tailored build options. This page guides you through the essential inputs that configure how your app is built, signed, packaged, and optimized, streamlining your CI/CD workflows with precision and confidence.
+
+---
+
+## Why Configuration Matters
+
+Building a desktop application with Wails.io involves balancing performance, security, platform support, and release quality. The `dAppServer/wails-build-action` GitHub Action provides a suite of adjustable parameters allowing you to precisely control this process:
+
+- **Tailor the build process** by enabling or disabling obfuscation.
+- **Ensure application integrity** through configurable code signing credentials for macOS and Windows.
+- **Optimize release flow** by toggling artifact packaging and installer generation.
+- **Support multiple platforms** seamlessly with targeted build options.
+
+By understanding and leveraging these options, you empower your automation to be both robust and adaptable to your project's unique demands.
+
+---
+
+## Key Configuration Inputs and Their Impact
+
+Below is a breakdown of the most important input parameters you provide to the GitHub Action and how they shape your build pipeline.
+
+### Build Controls
+
+- `build` (default: `true`)
+  - Enable or disable the full Wails build process.
+  - Set to `false` to skip building, useful for workflows that perform other tasks.
+
+- `build-name` (required)
+  - Names the output binary and related artifacts.
+  - Use consistent naming conventions to manage multi-platform builds.
+
+- `build-platform` (default: `darwin/universal`)
+  - Specifies the target platform architecture, e.g., `linux/amd64`, `windows/amd64`.
+  - Crucial for cross-platform CI pipelines.
+
+- `build-tags` (default: `false`)
+  - Pass Go compiler build tags to include/exclude features.
+  - Supports space or comma-separated strings, must be quoted to avoid shell parsing errors.
+
+### Security & Obfuscation
+
+- `build-obfuscate` (default: `false`)
+  - When enabled, obfuscates your Go binary source to enhance code protection.
+  - Useful for proprietary applications where source exposure is a risk.
+
+- `sign` (default: `false`)
+  - Toggles signing and notarization of build outputs.
+  - Requires associated signing credentials.
+
+- Code signing credential inputs for macOS and Windows (all default to empty):
+
+  | Input Name                        | Purpose                      |
+  |----------------------------------|------------------------------|
+  | `sign-macos-app-id`               | macOS app signing certificate ID    |
+  | `sign-macos-apple-password`      | Apple password for signing    |
+  | `sign-macos-app-cert`             | Base64 encoded app certificate       |
+  | `sign-macos-app-cert-password`   | Password for app certificate  |
+  | `sign-macos-installer-id`         | Installer certificate ID      |
+  | `sign-macos-installer-cert`       | Base64 encoded installer certificate |
+  | `sign-macos-installer-cert-password` | Password for installer certificate |
+  | `sign-windows-cert`               | Windows signing certificate   |
+  | `sign-windows-cert-password`      | Password for Windows cert     |
+
+### Packaging and Installation
+
+- `package` (default: `true`)
+  - Controls if artifacts are uploaded and releases created.
+  - Set to `false` to skip artifact upload when running builds manually or in tests.
+
+- `nsis` (default: `false`)
+  - Enables building a Windows installer using the NSIS system.
+  - Essential for creating user-friendly installers in Windows environments.
+
+### Environment Versions
+
+Customize the build environment by specifying versions:
+
+- `go-version` (default: `1.23`)
+- `node-version` (default: `18.x`)
+- `deno-version` (default: `v1.20.x`)
+
+These ensure consistent, reproducible builds aligned to your application’s dependency requirements.
+
+### Webview2 Installer Options (Windows)
+
+- `wails-build-webview2` (default: `download`)
+  - Defines how WebView2 runtime is handled: options include `download`, `embed`, `browser`, or `error`.
+  - This impacts startup behavior and installer size.
+
+---
+
+## Real-World Example
+
+Here is a practical snippet demonstrating how to configure the action to build a Windows signed and obfuscated binary with packaging enabled:
+
+```yaml
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: dAppServer/wails-build-action@v3
+        with:
+          build-name: MyApp
+          build-platform: windows/amd64
+          build-obfuscate: true
+          sign: true
+          package: true
+          nsis: true
+          sign-windows-cert: ${{ secrets.WINDOWS_CERT }}
+          sign-windows-cert-password: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+```
+
+This configuration delivers a fully packaged, signed Windows installer with obfuscation for additional code protection.
+
+---
+
+## Best Practices and Tips
+
+- **Always specify `build-name` consistently** to avoid confusion and conflicts in multi-platform builds.
+- Enable **code signing** before pushing production releases to maintain trust and meet OS security requirements.
+- Use **`build-tags` sparingly and distinctly**; incorrect or missing tags can cause build errors.
+- Carefully manage secrets for signing certificates using GitHub Secrets to maintain security.
+- For **macOS signing**, ensure you provide all required certificate fields to avoid build failures.
+- To **reduce build time when debugging**, consider disabling packaging (`package: false`) and obfuscation (`build-obfuscate: false`).
+
+---
+
+## Troubleshooting Common Issues
+
+<AccordionGroup title="Common Challenges">
+<Accordion title="Build Fails on Unsupported Linux Distro">
+Ensure your self-hosted runners or build environments match the supported Linux distributions (Ubuntu 20.04, 22.04, or 24.04). Unsupported versions will trigger workflow failure.
+</Accordion>
+<Accordion title="Code Signing Errors on macOS">
+Verify all certificate inputs are correct and properly base64-encoded. Confirm Apple password and installer IDs are valid and scoped to your Apple Developer account.
+</Accordion>
+<Accordion title="Artifacts Not Uploaded or Releases Missing">
+Check that `package` input is set to `true` and confirm the workflow is triggered on a Git tag for release publishing.
+</Accordion>
+<Accordion title="Obfuscation Not Working or Build Slower">
+Ensure `build-obfuscate` is set to `true` to enable obfuscation. Note that obfuscation increases build time; disable during development if necessary.
+</Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+Ready to put these build options into action? Proceed to:
+
+- [Adding the Action to GitHub Workflows](/getting-started/install-configure/adding-action-github) to learn how to integrate this action.
+- [Setting Up Code Signing (macOS & Windows)](/getting-started/install-configure/code-signing-setup) to configure your certificates securely.
+- [Running Your First Build](/getting-started/first-run-validation/running-your-first-build) to validate your pipeline.
+
+Harness the flexibility and power of these customizable options to deliver professional, secure, and polished Wails.io applications effortlessly.
+
+
+---
+
+### Detailed Input Summary Table
+
+| Input Name                      | Type     | Default          | Description                                                        |
+|--------------------------------|----------|------------------|--------------------------------------------------------------------|
+| `build`                        | boolean  | `true`           | Enables the build step of the Wails app.                          |
+| `build-name`                   | string   | _required_       | Output binary and artifact base name.                             |
+| `build-platform`               | string   | `darwin/universal` | Target build platform (e.g., `linux/amd64`).                      |
+| `build-tags`                  | string   | `false`          | Go build tags passed to compiler (quoted).                        |
+| `build-obfuscate`             | boolean  | `false`          | Whether to obfuscate the Go binary.                               |
+| `sign`                        | boolean  | `false`          | Enables code signing and notarizing processes.                    |
+| `package`                     | boolean  | `true`           | Upload artifacts and create GitHub release on tagged builds.      |
+| `nsis`                        | boolean  | `false`          | Enables Windows NSIS installer creation.                          |
+| `wails-version`               | string   | `latest`         | Version of the Wails CLI used during build.                       |
+| `go-version`                  | string   | `1.23`           | Go language version installed for build.                          |
+| `node-version`                | string   | `18.x`           | Node.js version installed for frontend build.                     |
+| `deno-build`                  | string   | empty            | Custom Deno build command, if applicable.                         |
+| `deno-working-directory`       | string   | `.`              | Working directory for Deno commands.                              |
+| `deno-version`                | string   | `v1.20.x`        | Version of Deno installed.                                        |
+| `wails-build-webview2`        | string   | `download`       | How WebView2 runtime is handled on Windows.                       |
+
+| **macOS Signing Inputs (all string, default empty)**                                       |
+| `sign-macos-app-id`          | string   | `''`             | Application signing cert ID.                                      |
+| `sign-macos-apple-password`  | string   | `''`             | Apple ID password for signing.                                    |
+| `sign-macos-app-cert`        | string   | `''`             | Base64 encoded app certificate.                                  |
+| `sign-macos-app-cert-password`| string   | `''`             | Password for app certificate.                                   |
+| `sign-macos-installer-id`     | string   | `''`             | Installer certificate ID.                                        |
+| `sign-macos-installer-cert`   | string   | `''`             | Base64 encoded installer certificate.                           |
+| `sign-macos-installer-cert-password` | string | `''`        | Password for installer certificate.                              |
+
+| **Windows Signing Inputs (all string, default empty)**                                 |
+| `sign-windows-cert`          | string   | `''`             | Windows signing certificate.                                     |
+| `sign-windows-cert-password` | string   | `''`             | Password for Windows cert.                                       |

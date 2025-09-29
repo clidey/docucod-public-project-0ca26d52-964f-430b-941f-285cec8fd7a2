@@ -1,0 +1,148 @@
+---
+title: "Primary Features & Capabilities"
+description: "Summarizes key features such as cross-platform builds, artifact packaging, NSIS/installer integration, code-signing, and configuring build environment versions for Go, Node, and Deno."
+---
+
+# Primary Features & Capabilities
+
+The **dAppServer/wails-build-action** GitHub Action empowers developers to automate the full lifecycle of building, packaging, signing, and releasing Wails.io desktop applications — all within a seamless CI/CD workflow. This page highlights the key features and capabilities that make this action a powerful tool for cross-platform, secure, and reliable desktop app delivery.
+
+---
+
+## Cross-Platform Builds
+
+This action handles multi-platform compilation effortlessly, enabling you to build applications for Linux, macOS (universal), and Windows from the same workflow.
+
+- **Platform Flexibility:** Specify your target platform using the `build-platform` input, such as `darwin/universal`, `linux/amd64`, or `windows/amd64`.
+- **Build Tags:** Customize Go compilation with build tags (`build-tags`) to enable platform-specific or feature-based builds.
+- **Obfuscation:** Optionally obfuscate your Go binaries (`build-obfuscate`) to protect your app’s internals.
+
+> _Example:_ Build a macOS universal binary and Windows 64-bit executable in parallel CI jobs, ensuring your app runs natively and efficiently on both platforms.
+
+## Artifact Packaging and Upload
+
+Seamlessly package build outputs as artifacts and push them to GitHub releases.
+
+- **Built-In Packaging:** Automatically uploads `bin/` directories containing compiled executables.
+- **Release Integration:** On tag workflows, uploads artifacts to GitHub release drafts, simplifying distribution.
+- **Optional Packaging:** Disable artifact uploads with the `package` input if manual packaging is preferred.
+
+> _Scenario:_ After building your app, the compiled executables and installation files become instantly available for download as release assets.
+
+## NSIS Installer Integration for Windows
+
+Create professional Windows installers using NSIS directly within your workflow.
+
+- **Toggle Installer Creation:** Enable via `nsis` input to generate `.exe` installer files alongside binaries.
+- **Installer Signing:** Integrate Windows certificate signing to produce trusted installers.
+
+> _Benefit:_ Provide end users with an easy, guided setup experience without extra packaging steps.
+
+## Code Signing Support (macOS & Windows)
+
+Protect your app’s integrity and user trust with integrated code signing.
+
+- **macOS Code Signing:** Supports signing the `.app` bundle and installer package using the gon tool and native `productbuild`.
+  - Use inputs like `sign-macos-app-cert` and `sign-macos-installer-cert` to provide certificates securely.
+  - Automate notarization of your app and installer during CI runs for macOS Gatekeeper compliance.
+- **Windows Signing:** Sign executables and installers using provided certificates with Windows Signtool.
+  - Provide signing cert and password via `sign-windows-cert` and `sign-windows-cert-password`.
+
+<Callout>
+Integrating signing directly in your build workflow guarantees that release artifacts meet OS-level security requirements, reducing manual work and potential errors.
+</Callout>
+
+## Configurable Build Environment Versions
+
+Set the exact versions of build tools for deterministic, reproducible builds.
+
+- **Go Version:** Select your desired Go compiler version via `go-version` input.
+- **Node.js Version:** Choose your Node.js version (`node-version`) for frontend dependencies.
+- **Deno Support:** Optionally set Deno version (`deno-version`) and run custom Deno build commands (`deno-build`).
+
+> _Use Case:_ Ensure your dev and CI environments align perfectly by locking dependencies to known, tested versions.
+
+## Automated Setup and Dependency Installation
+
+Prepares the build environment without manual intervention.
+
+- Installs required libraries on Linux (GTK, WebKit dependencies).
+- Installs Wails CLI tooling automatically.
+- Installs garble for Go obfuscation if enabled.
+- Installs the gon tool on macOS for signing and notarization.
+
+This eliminates the friction of environment setup and focuses your workflow on building and releasing.
+
+## Build Permissions Management
+
+Automatically applies executable permissions to built binaries for Linux and macOS, ensuring your apps are ready to run immediately after build.
+
+## Workflow Flexibility & Advanced Configuration
+
+The action offers multiple inputs that allow you to tailor the build process deeply:
+
+- Decide whether to run the build step (`build` input).
+- Provide custom build options such as obfuscation and build tags.
+- Choose how the WebView2 runtime is handled on Windows via `wails-build-webview2` input.
+- Select whether to cache Go dependencies to speed up builds.
+
+This level of control improves integration with complex CI/CD pipelines.
+
+---
+
+## Real-World Scenario
+
+Imagine a team working on a cross-platform Wails app. They set up a GitHub Actions workflow using this build action, specifying build names, platforms, and enabling signing for both macOS and Windows releases. On each push to `main`, artifacts build and package automatically. On tag creation, signed installers and binaries upload to GitHub releases, fully notarized and ready for distribution. This automation saves hours of manual packaging and signing work, guarantees consistent builds, and expedites delivering trustworthy desktop apps to users.
+
+---
+
+## Example Snippet of Usage
+
+```yaml
+- uses: dAppServer/wails-build-action@v3
+  with:
+    build-name: myWailsApp
+    build-platform: darwin/universal
+    sign: true
+    nsis: true
+    build-obfuscate: true
+    go-version: 1.23
+    node-version: 18.x
+    package: true
+```
+
+---
+
+## Troubleshooting Common Issues
+
+<AccordionGroup title="Common Build and Packaging Questions">
+<Accordion title="My Windows NSIS installer is not generating, how do I enable it?">
+Set the `nsis` input to `true` in your action configuration. This triggers the Windows Installer build alongside your binaries.
+</Accordion>
+<Accordion title="How do I ensure my builds are signed and notarized for macOS?">
+Use the `sign` input set to `true` along with providing the required certificate inputs such as `sign-macos-app-cert`, `sign-macos-installer-cert`, and their passwords. Also, ensure the workflow runs on tagged commits to trigger notarization.
+</Accordion>
+<Accordion title="Can I build with a different Go or Node version?">
+Yes. Specify `go-version` and `node-version` inputs to use your preferred versions, ensuring your builds stay consistent across environments.
+</Accordion>
+</AccordionGroup>
+
+---
+
+## Summary of Key Features
+
+- Cross-platform build orchestration (Linux, macOS, Windows)
+- Artifact packaging and GitHub release upload
+- Optional NSIS Windows installer generation
+- Integrated macOS and Windows code signing and notarization
+- Flexible configuration including obfuscation, build tags, and WebView2 method
+- Deterministic environment versions (Go, Node, Deno)
+- Automated environment setup and permission fixing
+
+---
+
+By mastering these features, developers can accelerate delivery of secure, high-quality Wails.io desktop applications with confidence and minimal manual overhead. For detailed setup instructions and advanced configuration, explore the [Configuration & Customization Options](../configuration-and-customization) and [Code Signing Setup](../../getting-started/install-configure/code-signing-setup) documentation.
+
+---
+
+<Source url="https://github.com/dAppServer/wails-build-action" paths={[{"path": "action.yml", "range": "1-229"}]} />

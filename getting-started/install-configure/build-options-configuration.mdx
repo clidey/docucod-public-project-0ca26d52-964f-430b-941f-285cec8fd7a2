@@ -1,0 +1,202 @@
+---
+title: "Configuring Build Options"
+description: "Explains the most important configuration options, such as naming, target platform selection, release uploads, obfuscation, and packaging. Covers the canonical fields with examples and guidance for customizing builds for Mac, Windows, and Linux."
+---
+
+# Configuring Build Options
+
+The dAppServer/wails-build-action provides flexible configuration options to customize how your Wails.io desktop app builds are executed within GitHub Actions workflows. This guide explains the most important parameters you can set to tailor your builds for your target platform, naming conventions, obfuscation needs, packaging requirements, and release uploads.
+
+---
+
+## 1. Essential Build Configuration Parameters
+
+### `build-name` (Required)
+- **Purpose**: Defines the name of the binary output produced by the build.
+- **Usage**: Set a clear, descriptive name for your executable to easily identify it across platforms and releases.
+
+```yaml
+with:
+  build-name: wailsApp
+```
+
+### `build-platform`
+- **Purpose**: Specifies the target platform and architecture for the build.
+- **Default**: `darwin/universal` (macOS universal binary)
+- **Supported values examples**:
+  - `linux/amd64` for 64-bit Linux
+  - `windows/amd64` for 64-bit Windows
+  - `darwin/universal` for Universal macOS builds
+
+```yaml
+with:
+  build-platform: linux/amd64
+```
+
+### `build` (Boolean)
+- **Purpose**: Controls whether the `wails build` command runs during the action.
+- **Default**: `true`
+- **Use Case**: Disable if you want to skip building but perform other steps.
+
+### `package` (Boolean)
+- **Purpose**: Uploads the build artifacts and, if triggered by a tag, publishes a GitHub release with the binaries.
+- **Default**: `true`
+
+### `build-obfuscate` (Boolean)
+- **Purpose**: Toggles build obfuscation using Garble to protect your Go binaries from reverse engineering.
+- **Default**: `false`
+- **Best Practice**: Enable in production releases when you want to protect your code.
+
+### `nsis` (Boolean)
+- **Purpose**: Controls whether to build a Windows NSIS (Nullsoft Installer System) installer.
+- **Default**: `false`
+- **Note**: Only applicable when building for Windows platforms.
+
+```yaml
+with:
+  nsis: true
+```
+
+---
+
+## 2. Advanced Build Customization
+
+### Build Tags (`build-tags`)
+- **Description**: Pass Go build tags to customize compilation per your app logic.
+- **Format**: A quoted string with space or comma-separated build tags.
+- **Default**: `false` (disabled)
+
+Example to add tags including the automatic `webkit2_41` tag for Ubuntu 24.04:
+
+```yaml
+with:
+  build-tags: "customtag1 customtag2"
+```
+
+If you do not specify tags but are on Ubuntu 24.04, the action automatically adds the `webkit2_41` tag.
+
+### Obfuscation
+- Enabling obfuscation requires installing the Garble tool. The action does this automatically if `build-obfuscate` is `true`.
+- This adds flags to the build command that make reverse-engineering Go binaries more difficult.
+
+---
+
+## 3. Release and Artifact Management
+
+### Packaging Uploads (`package`)
+- When true, the action uploads all build artifacts from the build output directories.
+- On pushing Git tags, the action automatically creates a GitHub release and attaches artifacts.
+
+### Code Signing Integration (`sign`)
+- Optional code signing can be enabled alongside building.
+- The process differs by platform (macOS and Windows) and requires setting secure credentials.
+- See [Setting Up Code Signing (MacOS & Windows)](/getting-started/install-configure/code-signing-setup) for detailed steps.
+
+---
+
+## 4. Example Configuration for Common Scenarios
+
+### Basic Linux Build Without Uploading
+
+```yaml
+- uses: dAppServer/wails-build-action@main
+  with:
+    build-name: myLinuxApp
+    build-platform: linux/amd64
+    package: false
+```
+
+### MacOS Build With Signing and Packaging
+
+```yaml
+- uses: dAppServer/wails-build-action@main
+  with:
+    build-name: myMacApp
+    build-platform: darwin/universal
+    sign: true
+    package: true
+    sign-macos-apple-password: ${{ secrets.APPLE_PASSWORD }}
+    sign-macos-app-id: ${{ secrets.MACOS_DEVELOPER_CERT_ID }}
+    sign-macos-app-cert: ${{ secrets.MACOS_DEVELOPER_CERT }}
+    sign-macos-app-cert-password: ${{ secrets.MACOS_DEVELOPER_CERT_PASSWORD }}
+```
+
+### Windows Build With NSIS Installer Generation
+
+```yaml
+- uses: dAppServer/wails-build-action@main
+  with:
+    build-name: myWinApp
+    build-platform: windows/amd64
+    nsis: true
+    package: true
+    sign: true
+    sign-windows-cert: ${{ secrets.WINDOWS_CERT }}
+    sign-windows-cert-password: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+```
+
+---
+
+## 5. Understanding How These Options Affect Your Build
+
+Below is a simplified flowchart illustrating how input options influence the build action process:
+
+```mermaid
+flowchart TD
+  A[Start Build Action] --> B{Is "build" true?}
+  B -- Yes --> C[Run wails build with configured options]
+  B -- No --> D[Skip build step]
+  C --> E{Is "sign" true and platform supported?}
+  E -- Yes --> F[Perform Code Signing & Notarization]
+  E -- No --> G[Skip Signing]
+  F --> H{Is "nsis" true and Windows platform?}
+  G --> H
+  H -- Yes --> I[Generate Windows NSIS Installer]
+  H -- No --> J[Skip Installer Creation]
+  I --> K{Is "package" true?}
+  J --> K
+  K -- Yes --> L[Upload Artifacts & Create Release if Tag]
+  K -- No --> M[Skip Uploads]
+  L --> N[End]
+  M --> N
+```
+
+---
+
+## 6. Practical Tips
+
+- Always provide a meaningful `build-name` for easy identification in artifacts and releases.
+- Set `build-platform` carefully to match your target environment.
+- Use `build-obfuscate` in release builds to protect your code.
+- The `build-tags` setting helps customize your build environment but remember to quote and separate values properly.
+- If signing, keep your certificate secrets secure and verify that secrets are properly injected into your GitHub repository.
+- Use `package: false` to speed up builds during development if uploading artifacts is not needed.
+
+---
+
+## 7. Common Pitfalls and Troubleshooting
+
+<Accordion title="Build Fails on Unsupported Platform">
+If your build fails with a message about unsupported platform dependencies, confirm you set `build-platform` to a supported combination. Also, verify your GitHub Runner OS matches the platform settings.
+</Accordion>
+
+<Accordion title="Code signing fails on macOS">
+Ensure all relevant certificate secrets (`sign-macos-app-cert`, `sign-macos-installer-cert`, and passwords) are correctly uploaded to GitHub Secrets. Signing only triggers on tagged commits and requires the `sign` input set to true.
+</Accordion>
+
+<Accordion title="Artifacts not uploaded after build">
+Verify that `package` is `true`. Also ensure that artifacts exist in the expected output folders (`*/bin/` or equivalent). On tagged builds, releases should be automatically created.
+</Accordion>
+
+---
+
+## 8. Related Documentation
+
+- [Adding the Action to GitHub Workflows](/getting-started/install-configure/adding-action-github) - for integrating this action in your pipeline
+- [Setting Up Code Signing (MacOS & Windows)](/getting-started/install-configure/code-signing-setup) - for detailed signing configuration
+- [Running Your First Build](/getting-started/first-run-validation/running-your-first-build) - to validate your build setup
+- [System Requirements & Prerequisites](/getting-started/setup-overview/system-requirements) - to ensure your environment meets dependencies
+
+---
+
+This configuration-focused guide empowers you to adapt the dAppServer/wails-build-action to your project needs, streamlining cross-platform Wails app builds, packaging, and release automation with confidence.

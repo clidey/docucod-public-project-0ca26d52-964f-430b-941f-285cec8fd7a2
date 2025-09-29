@@ -1,0 +1,237 @@
+---
+title: "Setting Up Code Signing (MacOS & Windows)"
+description: "Describes how to add and securely use signing credentials for Mac and Windows. Offers a walkthrough of relevant secrets, sample gon config files for Mac notarization, and a checklist to make signed releases easy and compliant."
+---
+
+# Setting Up Code Signing (MacOS & Windows)
+
+This guide walks you through securely adding and using code signing credentials for macOS and Windows builds in the **dAppServer/wails-build-action**. Proper code signing ensures your desktop applications are trusted by the operating systems, enables notarization on macOS, and protects against tampering.
+
+---
+
+## 1. Why Code Signing Matters
+
+Code signing verifies the identity of the app developer and guarantees the integrity of the application. For macOS, it is essential to pass Gatekeeper's security checks and to notarize your app with Apple. Windows uses signing certificates to establish trust and prevent security warnings on install.
+
+Without proper signing:
+
+- macOS apps may be blocked or show security warnings
+- Windows executables may trigger warnings or fail to install
+- User trust diminishes, impacting adoption
+
+---
+
+## 2. Prerequisites for Code Signing
+
+Before configuring your GitHub workflow, secure the following credentials and certificates:
+
+### macOS
+
+- **Apple Developer Account** with a valid developer certificate
+- Signing certificates in `.p12` format:
+  - Application certificate
+  - Installer certificate (optional, for creating signed installers)
+- Apple ID password or app-specific password for notarization
+- Bundle Identifier (e.g., `com.yourcompany.app`)
+
+### Windows
+
+- Code signing certificate (usually `.pfx` encoded) and password
+- Timestamp server URL (typically handled by the signing tool)
+
+<Tip>
+Keep all signing certificates and passwords secret. Use GitHub Encrypted Secrets to store these values securely.
+</Tip>
+
+---
+
+## 3. Storing Secrets in GitHub
+
+Use GitHub repository secrets to avoid exposing your signing credentials in plain text:
+
+- `SIGN_MACOS_APP_CERT` - Base64-encoded macOS app signing certificate
+- `SIGN_MACOS_APP_CERT_PASSWORD` - Password for macOS app certificate
+- `SIGN_MACOS_INSTALLER_CERT` - Base64-encoded macOS installer certificate
+- `SIGN_MACOS_INSTALLER_CERT_PASSWORD` - Password for macOS installer certificate
+- `SIGN_MACOS_APPLE_PASSWORD` - Apple ID password (or app-specific password)
+- `SIGN_MACOS_APP_ID` - Your macOS Application Certificate ID
+- `SIGN_MACOS_INSTALLER_ID` - Your macOS Installer Certificate ID
+- `SIGN_WINDOWS_CERT` - Base64-encoded Windows signing certificate
+- `SIGN_WINDOWS_CERT_PASSWORD` - Password for Windows signing certificate
+
+<Note>
+Do not commit your certificates or passwords to the repository.
+</Note>
+
+---
+
+## 4. Configuring gon for macOS Notarization
+
+The [gon tool](https://github.com/mitchellh/gon) automates signing and notarization on macOS. The `wails-build-action` uses gon via configured JSON files.
+
+### 4.1 Sample gon Sign Configuration (`build/darwin/gon-sign.json`)
+
+```json
+{
+  "source" : ["./build/bin/wailsApp.app"],
+  "bundle_id" : "com.wails.app",
+  "apple_id": {
+    "username": "username",
+    "password": "@env:APPLE_PASSWORD"
+  },
+  "sign" :{
+    "application_identity" : "Developer ID Application: XXXXXXXX (XXXXXX)",
+    "entitlements_file": "./build/darwin/entitlements.plist"
+  },
+  "dmg" :{
+    "output_path":  "./build/bin/wailsApp.dmg",
+    "volume_name":  "Lethean"
+  }
+}
+```
+
+- `source`: Path to the built `.app` bundle
+- `bundle_id`: Your app's bundle identifier
+- `apple_id`: Apple developer credentials (use environment variable `APPLE_PASSWORD` for security)
+- `sign.application_identity`: The exact name of your developer certificate
+- `entitlements_file`: Security permissions plist file
+- `dmg`: Configures the output disk image (optional)
+
+### 4.2 Sample gon Notarize Configuration (`build/darwin/gon-notarize.json`)
+
+```json
+{
+  "notarize": [{
+    "path": "./build/bin/wailsApp.pkg",
+    "bundle_id": "com.wails.app",
+    "staple": true
+  },{
+    "path": "./build/bin/wailsApp.app.zip",
+    "bundle_id": "com.wails.app",
+    "staple": false
+  }],
+  "apple_id": {
+    "username": "USER name",
+    "password": "@env:APPLE_PASSWORD"
+  }
+}
+```
+
+- `notarize.path`: File(s) to notarize (the installer package and zipped app)
+- `staple`: Whether to staple the notarization ticket
+
+### 4.3 Entitlements Property List (`build/darwin/entitlements.plist`)
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>com.apple.security.app-sandbox</key>
+  <true/>
+  <key>com.apple.security.network.client</key>
+  <true/>
+  <key>com.apple.security.network.server</key>
+  <true/>
+  <key>com.apple.security.files.user-selected.read-write</key>
+  <true/>
+</dict>
+</plist>
+```
+
+- Defines sandbox and network file access permissions required by your app
+
+---
+
+## 5. Integrating Code Signing in Your GitHub Workflow
+
+Add the following inputs to your `dAppServer/wails-build-action` step in your workflow YAML to enable signing:
+
+```yaml
+- uses: dAppServer/wails-build-action@v3
+  with:
+    build-name: wailsApp
+    build-platform: darwin/universal
+    sign: true
+    sign-macos-app-id: ${{ secrets.SIGN_MACOS_APP_ID }}
+    sign-macos-apple-password: ${{ secrets.SIGN_MACOS_APPLE_PASSWORD }}
+    sign-macos-app-cert: ${{ secrets.SIGN_MACOS_APP_CERT }}
+    sign-macos-app-cert-password: ${{ secrets.SIGN_MACOS_APP_CERT_PASSWORD }}
+    sign-macos-installer-id: ${{ secrets.SIGN_MACOS_INSTALLER_ID }}
+    sign-macos-installer-cert: ${{ secrets.SIGN_MACOS_INSTALLER_CERT }}
+    sign-macos-installer-cert-password: ${{ secrets.SIGN_MACOS_INSTALLER_CERT_PASSWORD }}
+```
+
+For Windows signing:
+
+```yaml
+- uses: dAppServer/wails-build-action@v3
+  with:
+    build-name: wailsApp
+    build-platform: windows/amd64
+    sign: true
+    sign-windows-cert: ${{ secrets.SIGN_WINDOWS_CERT }}
+    sign-windows-cert-password: ${{ secrets.SIGN_WINDOWS_CERT_PASSWORD }}
+```
+
+<Note>
+The action automatically detects the OS during runtime and uses the appropriate signing configuration.
+</Note>
+
+---
+
+## 6. Verification and Troubleshooting
+
+- **Verify on macOS:** After build and signing, open your app and run:
+  ```bash
+  spctl -a -v --type execute /path/to/your/wailsApp.app
+  ```
+  It should report `accepted` if correctly signed.
+
+- **Verify on Windows:** Use the "Properties > Digital Signatures" tab on the `.exe` file.
+
+- **Common Issues:**
+  - _Invalid certificate or password:_ Ensure secrets are correct and base64 encoded if binary.
+  - _Notarization failures:_ Double-check bundle IDs match, and Apple credentials are current.
+  - _Permission errors:_ Ensure appropriate entitlements are set in the plist.
+
+<Tip>
+Check GitHub Action logs for detailed signing and notarization output to diagnose failures.
+</Tip>
+
+---
+
+## 7. Summary Checklist
+
+| Step                         | Completed (✓) |
+|------------------------------|--------------|
+| Gather and secure signing certs and passwords |              |
+| Store all secrets encrypted in GitHub secrets  |              |
+| Configure gon JSON files for signing and notarization |              |
+| Update GitHub workflow with signing inputs      |              |
+| Validate signed builds locally                   |              |
+| Monitor Action logs for issues                    |              |
+
+---
+
+## 8. Additional Resources
+
+- [Apple Developer Code Signing Guide](https://developer.apple.com/library/archive/documentation/Security/Conceptual/CodeSigningGuide/Procedures/Procedures.html)
+- [Microsoft Code Signing Overview](https://learn.microsoft.com/en-us/windows/win32/seccrypto/code-signing-overview)
+- [gon GitHub Repository](https://github.com/mitchellh/gon)
+- [GitHub Encrypted Secrets](https://docs.github.com/en/actions/security-guides/encrypted-secrets)
+
+---
+
+For full automation of your Wails app CI, combine this setup with our guides on [Adding the Action to GitHub Workflows](/getting-started/install-configure/adding-action-github) and [Configuring Build Options](/getting-started/install-configure/build-options-configuration).
+
+
+---
+
+#### Need help?
+Visit the [Troubleshooting Common Setup Issues](/getting-started/first-run-validation/common-setup-issues) page or open an issue in our [GitHub repository](https://github.com/dAppServer/wails-build-action).
+
+
+---
+
+_Last updated: February 2025_

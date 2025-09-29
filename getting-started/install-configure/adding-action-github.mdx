@@ -1,0 +1,208 @@
+---
+title: "Adding the Action to GitHub Workflows"
+description: "Walks through integrating wails-build-action in a GitHub Actions workflow, including example YAML blocks for both default and custom builds. Highlights usage patterns, required 'with' variables, and common best practices."
+---
+
+# Adding the Action to GitHub Workflows
+
+This guide walks you through integrating the `dAppServer/wails-build-action` into your GitHub Actions workflows. You'll learn how to configure the action with default settings, customize build parameters, and apply best practices for signing, packaging, and multi-platform automation.
+
+---
+
+## 1. Prerequisites
+
+Before adding the action to your workflow:
+
+- Ensure your repository is prepared according to the [Preparing Your Repository](../setup-overview/preparing-your-repository) guide.
+- Confirm system dependencies and environment versions meet the [System Requirements](../setup-overview/system-requirements) guide.
+- Have your code signing certificates ready for macOS and Windows if you plan to sign your builds.
+
+
+## 2. Basic Integration: Default Build
+
+The simplest way to get started is to add the action with minimal settings. At a minimum, you must specify the `build-name` and `build-platform` inputs.
+
+```yaml
+- uses: dAppServer/wails-build-action@main
+  with:
+    build-name: wailsApp
+    build-platform: linux/amd64
+```
+
+This snippet configures the action to build your Wails app binary on a Linux amd64 platform.
+
+
+## 3. Customizing Your Workflow
+
+### A. Using Strategy Matrix for Multi-Platform Builds
+
+You can automate builds across multiple OSes and platforms using GitHub's matrix strategy. Example:
+
+```yaml
+name: Wails build
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        build: [
+          {name: wailsTest, platform: linux/amd64, os: ubuntu-latest},
+          {name: wailsTest, platform: windows/amd64, os: windows-latest},
+          {name: wailsTest, platform: darwin/universal, os: macos-latest}
+        ]
+    runs-on: ${{ matrix.build.os }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - uses: dAppServer/wails-build-action@main
+        with:
+          build-name: ${{ matrix.build.name }}
+          build-platform: ${{ matrix.build.platform }}
+          build-obfuscate: true
+```
+
+This setup compiles the app across Linux, Windows, and macOS with obfuscation enabled.
+
+
+### B. Controlling Upload and Packaging
+
+To turn off artifact uploads and release creation, set `package: false`:
+
+```yaml
+- uses: dAppServer/wails-build-action@main
+  with:
+    build-name: wailsApp
+    build-platform: linux/amd64
+    package: false
+```
+
+
+### C. Important `with` Inputs
+
+| Input                         | Required | Default        | Description                                                  |
+|------------------------------|----------|----------------|--------------------------------------------------------------|
+| `build-name`                 | Yes      | none           | Name of the output binary                                    |
+| `build-platform`             | No       | darwin/universal | Target platform for build (e.g., linux/amd64, windows/amd64) |
+| `build-obfuscate`            | No       | false          | Enable binary obfuscation                                    |
+| `sign`                      | No       | false          | Enable code signing after build                              |
+| `package`                   | No       | true           | Upload artifacts & create GitHub release on tagged builds   |
+| `nsis`                      | No       | false          | Build Windows installer using NSIS                           |
+| `wails-version`            | No       | latest         | Specific Wails version to install                            |
+| `go-version`                | No       | 1.23           | Version of Go to use                                         |
+| `node-version`              | No       | 18.x           | Node.js version for frontend build                          |
+| ...                        |          |                | See full list in [action.yml](../../action.yml)             |
+
+
+## 4. MacOS Code Signing Example
+
+When signing on macOS, provide the required certificates and passwords as secrets. Example snippet:
+
+```yaml
+- uses: dAppServer/wails-build-action@main
+  with:
+    build-name: wailsApp
+    build-platform: darwin/universal
+    sign: true
+    sign-macos-apple-password: ${{ secrets.APPLE_PASSWORD }}
+    sign-macos-app-id: ${{ secrets.MACOS_DEVELOPER_CERT_ID }}
+    sign-macos-app-cert: ${{ secrets.MACOS_DEVELOPER_CERT }}
+    sign-macos-app-cert-password: ${{ secrets.MACOS_DEVELOPER_CERT_PASSWORD }}
+    sign-macos-installer-id: ${{ secrets.MACOS_INSTALLER_CERT_ID }}
+    sign-macos-installer-cert: ${{ secrets.MACOS_INSTALLER_CERT }}
+    sign-macos-installer-cert-password: ${{ secrets.MACOS_INSTALLER_CERT_PASSWORD }}
+```
+
+Make sure to create appropriate `gon-sign.json` and `gon-notarize.json` files as per the [Code Signing Setup](../install-configure/code-signing-setup) guide.
+
+
+## 5. Best Practices & Usage Tips
+
+- **Use version pinning**: Specify exact `wails-version`, `go-version`, and `node-version` values for repeatable builds.
+- **Cache dependencies**: Enable caching (`build-cache: true`) to speed up builds.
+- **Leverage matrix builds** for comprehensive platform coverage without duplicating workflow code.
+- **Set `package` to false** during debugging to avoid cluttering your releases with test artifacts.
+- **Ensure code signing secrets** are securely stored in GitHub Secrets.
+
+
+## 6. Troubleshooting Common Issues
+
+### Build Fails Due to Unsupported Linux Distro
+
+The action supports Ubuntu 20.04, 22.04, and 24.04. If you receive errors related to missing dependencies:
+
+- Confirm the runner uses a supported distro.
+- Update or change your runner image accordingly.
+
+### Signing Step Skipped Unexpectedly
+
+- Signing only triggers on tagged commits (`refs/tags/*`). Make sure your push is tagged.
+- Confirm that signing inputs and certificates are properly configured.
+
+### Artifacts Not Uploading
+
+- Verify `package` input is set to `true`.
+- Check workflow logs for upload errors.
+
+
+## 7. Complete Example Workflow
+
+```yaml
+name: Build and Release Wails App
+
+on:
+  push:
+    tags:
+      - 'v*'
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - uses: dAppServer/wails-build-action@main
+        with:
+          build-name: wailsApp
+          build-platform: linux/amd64
+          build-obfuscate: true
+          sign: false
+          package: true
+          wails-version: "v2.9.0"
+          go-version: "1.23"
+          node-version: "18.x"
+```
+
+---
+
+## 8. Next Steps
+
+- After integrating the action, proceed to [Configuring Build Options](../build-options-configuration) for detailed control.
+- Review [Setting Up Code Signing](../install-configure/code-signing-setup) if you plan to create signed apps.
+- Run your first build following [Running Your First Build](../../first-run-validation/running-your-first-build).
+
+
+---
+
+For detailed input parameters and the latest updates, see the [action.yml](../../action.yml) file in the repository.
+
+---
+
+[Back to Getting Started Overview](../../index.md)
+
+---
+
+<Check>Ensure your workflows respect secrets and follow platform-specific requirements to maintain secure, reproducible builds.</Check>
+
+
+---
+
+<Info>
+Want to learn more about integrating Wails builds in CI? Explore the full [Integration with GitHub Actions](../../overview/architecture-and-concepts/integration-with-github-actions) guide.
+</Info>

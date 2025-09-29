@@ -1,0 +1,108 @@
+---
+title: "Target Audience & Use Cases"
+description: "Defines who benefits most from this project—primarily developers and CI/CD engineers building Wails.io desktop apps for macOS, Windows, and Linux. Highlights real-world use cases such as automated builds, artifact packaging, and code-signing for cross-platform app releases."
+---
+
+# Target Audience & Use Cases
+
+## Empowering Developers and CI/CD Engineers
+
+The **dAppServer/wails-build-action** is expertly designed for developers, DevOps professionals, and CI/CD engineers who build, package, sign, and distribute desktop applications using [Wails.io](https://wails.io) across multiple platforms including macOS, Windows, and Linux.
+
+This GitHub Action streamlines complex build environments and repetitive tasks, enabling cross-platform Wails app releases to be automated with minimal effort and maximum reliability.
+
+---
+
+## Who Benefits Most?
+
+- **Desktop App Developers using Wails.io:** Automate builds and packaging for macOS, Windows, and Linux versions of your app without maintaining separate scripts.
+
+- **CI/CD Engineers & DevOps Teams:** Integrate a proven, configurable build action into your workflows to reliably produce signed, cross-platform binary releases.
+
+- **Open Source and Enterprise Teams:** Accelerate release cycles with built-in caching, artifact management, and optional code-signing for secure and trusted delivery.
+
+- **Cross-Platform Release Managers:** Simplify managing multiple build targets and distribution formats, including Windows installers and macOS signed packages.
+
+---
+
+## Real-World Use Cases 
+
+### 1. Automated Cross-Platform Builds
+
+Imagine you maintain a Wails app that needs to run on Windows, macOS, and Linux. Manually setting up build environments or maintaining VM images is error-prone and time-consuming.
+
+By using this action, you configure your workflow once with minimal inputs like `build-name` and `build-platform`. The action handles installing Go, Node.js, and platform-specific dependencies, then compiles and packages your app for all target OSes automatically.
+
+### 2. Artifact Packaging and Release Management
+
+For projects that require distributing installers or zipped apps, this action automatically uploads build artifacts to GitHub releases. Upon tagging a release, the workflow pushes your compiled binaries, installers, and zipped app bundles.
+
+This reduces manual intervention and makes it effortless to publish downloadable assets for your users.
+
+### 3. Integrated Code Signing for macOS & Windows
+
+Signing your applications boosts end-user trust and prevents OS warnings. This action supports importing code-signing certificates and automates the entire signing and notarization process for macOS apps and installers.
+
+Similarly, on Windows, it can sign executables and installers with provided certificates, all handled seamlessly within your CI pipeline.
+
+### 4. Build Customization & Security
+
+Trusted teams can enhance their build security by obfuscating the Go code, enabling specified build tags, or embedding Webview2 components using configurable inputs without overhauling workflows.
+
+This flexibility empowers teams to tailor builds to their environment and security policies.
+
+---
+
+## Before and After Using dAppServer/wails-build-action
+
+| Without the Action                                   | With dAppServer/wails-build-action                                   |
+|------------------------------------------------------|----------------------------------------------------------------------|
+| Manual environment setup for each platform          | Fully automated installs and builds for all target platforms         |
+| Separate scripts for Windows, macOS, and Linux      | Unified workflow with platform matrix support                        |
+| Manual signing using different tools and steps      | Integrated code signing and notarization steps included              |
+| Tedious artifact management on releases              | Automatic upload of binaries and installers to GitHub releases       |
+| Prone to errors and inconsistent builds              | Reliable, repeatable, and consistent builds every workflow run      |
+
+---
+
+## Key Benefits At a Glance
+
+- **Save Time and Reduce Complexity:** Eliminate manual setup of build tools and environments.
+- **Increase Release Confidence:** Sign and notarize automatically to deliver trusted apps.
+- **Simplify Cross-Platform Targeting:** One action supports all Wails-supported OS platforms.
+- **Enhance Security and Customization:** Optional obfuscation and build tags tailored to your needs.
+- **Streamline Artifact Delivery:** Seamless integration with GitHub artifacts and releases.
+
+---
+
+## Getting Started Preview
+
+To begin leveraging this action:
+
+1. Define your `build-name` and one or more `build-platform` targets in your GitHub workflow.
+2. Optionally configure signing inputs for macOS and Windows.
+3. Run the workflow anytime to produce cross-platform builds, signed binaries, and upload release assets.
+
+For detailed setup, see [Adding the Action to GitHub Workflows](https://docs.example.com/getting-started/install-configure/adding-action-github) and [Setting Up Code Signing (MacOS & Windows)](https://docs.example.com/getting-started/install-configure/code-signing-setup).
+
+---
+
+## Additional Resources
+
+- Learn more about the action’s capabilities in [Primary Features & Capabilities](https://docs.example.com/overview/feature-quicktour/primary-capabilities).
+- Understand configuration options in [Configuration & Customization Options](https://docs.example.com/overview/feature-quicktour/configuration-and-customization).
+
+
+---
+
+## Summary
+This page defines the core audience for dAppServer/wails-build-action and outlines practical use cases addressing their challenges with Wails.io desktop app builds, packaging, signing, and releasing across multiple platforms.
+
+It empowers teams to automate and standardize complex build pipelines, delivering signed and professional releases at scale.
+
+
+---
+
+_Ready to streamline your Wails build and release process? Proceed to [Adding the Action to GitHub Workflows](https://docs.example.com/getting-started/install-configure/adding-action-github) to set up your first automated build._
+
+---

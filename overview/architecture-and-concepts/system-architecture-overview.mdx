@@ -1,0 +1,128 @@
+---
+title: "System Architecture Overview"
+description: "Presents a mermaid diagram visualizing how the action orchestrates build, package, and signing steps across GitHub workflows, operating system specifics, and project sources. Outlines interaction between the action, the Wails framework, Go/Node tooling, and artifact output."
+---
+
+# System Architecture Overview
+
+## Visualization of the dAppServer/wails-build-action Workflow
+
+This page provides a clear visual representation of how the **dAppServer/wails-build-action** orchestrates the process of building, packaging, signing, and releasing Wails.io desktop applications. By illustrating each step across GitHub workflows, supported operating systems, and project source components, you gain a comprehensive understanding of how the action integrates essential tools and produces cross-platform artifacts seamlessly.
+
+---
+
+## How the Action Orchestrates the Build Process
+
+From repository checkout to final artifact release, the action drives a stepwise flow involving the Wails framework, programming tools (Go, Node.js, optionally Deno), code signing utilities, and artifact management. The diagram below captures key components and their interactions, reflecting how the action works under the hood from a user’s perspective.
+
+```mermaid
+flowchart TD
+  subgraph "GitHub Workflow"
+    A[Checkout Repository] --> B[Run dAppServer/wails-build-action]
+  end
+
+  subgraph "dAppServer/wails-build-action"
+    B --> C[Setup Environment]
+    C --> C1[Install Go]
+    C --> C2[Install Node.js]
+    C --> C3[Optional: Setup Deno]
+    C --> D[Configure Build Options]
+
+    D --> E[Run wails build]
+
+    subgraph "Build Steps"
+      direction TB
+      E --> F[Apply Build Flags & Obfuscation]
+      F --> G[Generate Binary & Package]
+    end
+
+    G --> H{Is Code Signing Enabled?}
+    H -- Yes --> I[Import Certificates & Sign Binaries]
+    I --> J[Run MacOS Signing & Notarization (macOS)]
+    I --> K[Run Windows Signing (Windows)]
+    H -- No --> L[Skip Signing]
+
+    J & K & L --> M[Setup File Permissions for Linux/macOS]
+
+    M --> N{Package Artifacts for Upload}
+    N -- Yes --> O[Upload Artifacts to Workflow]
+    N -- Tag Build --> P[Publish Release on GitHub]
+  end
+
+  subgraph "Project Source"
+    Q[Go Source Code] --> E
+    R[Frontend (Node.js) Assets] --> E
+    S[Deno Code (Optional)] --> C3
+  end
+
+  subgraph "Output"
+    O --> T[Binary Files in build/bin]
+    P --> U[GitHub Release with Binaries & Installers]
+  end
+
+  %% Relationships
+  classDef external fill:#f9f,stroke:#333,stroke-width:2px,color:#333;
+  class A,Q,R,S external;
+
+```
+
+---
+
+## Detailed Workflow Explanation
+
+### 1. Repository Checkout
+The process begins with GitHub Actions checking out your source repository, making all project files available for building.
+
+### 2. Environment Setup
+The action installs and configures the necessary runtime environments:
+- **Go Language:** The engine powering the Wails desktop app build backend.
+- **Node.js:** Required for frontend dependency management and asset building.
+- **Deno (Optional):** If your workflow specifies, it sets up Deno for running and compiling Deno-based code.
+
+### 3. Build Configuration
+User inputs and detected environment details configure build flags such as obfuscation, platform targeting, build tags, and webview options.
+
+### 4. Build Execution
+The core `wails build` command compiles your desktop app, blending Go backend code and web frontend assets into a platform-specific binary.
+
+### 5. Code Signing (Conditional)
+If enabled, the action imports your macOS or Windows code signing certificates securely and:
+- Executes signing and notarization steps for macOS applications and installers.
+- Performs Windows binary signing using signtool.
+
+### 6. Permissions Adjustment
+The action sets appropriate executable permissions for Linux and macOS builds to ensure usability post-download.
+
+### 7. Artifact Packaging and Upload
+Built binaries and installer packages are prepared for upload. The action uploads these artifacts to the GitHub workflow for easy retrieval.
+
+### 8. GitHub Release
+On tagged commits, signed and unsigned build artifacts are published as GitHub Releases, making distribution straightforward.
+
+---
+
+## Why This Architecture Matters
+
+This architecture ensures a fully automated, repeatable, and reliable build pipeline that handles multiple operating systems, code signing complexities, and artifact management transparently. Users experience seamless integration with GitHub Actions without manual environment preparation or signing hassles.
+
+It accelerates your delivery pipeline by automating key steps that usually demand manual intervention, enforcing best practices around code signing and multi-platform builds.
+
+---
+
+## Practical Tips & Best Practices
+
+- **Use Matrix Builds:** Leverage GitHub matrix strategy to simultaneously build for Linux, Windows, and macOS, reducing overall build times.
+- **Manage Secrets Carefully:** Store signing certificates and passwords securely in GitHub Secrets to enable safe automated signing.
+- **Leverage Cache:** Enable caching for Go modules and Node dependencies to speed up successive builds.
+- **Monitor Logs:** If signing fails, logs often indicate missing certificates or mismatched bundle IDs—ensure these align with your Apple Developer profiles.
+
+---
+
+## Next Steps
+- Explore detailed [Adding the Action to GitHub Workflows](/getting-started/install-configure/adding-action-github) to configure your CI pipeline.
+- Review [Code Signing Setup](/getting-started/install-configure/code-signing-setup) for tailored instructions on macOS and Windows signing.
+- Use [Build Options Configuration](/getting-started/install-configure/build-options-configuration) to customize your builds deeply.
+
+---
+
+By understanding this system architecture, you unlock the full potential of the **dAppServer/wails-build-action** and confidently harness its power to produce cross-platform, signed, and ready-to-release Wails.io desktop applications.
